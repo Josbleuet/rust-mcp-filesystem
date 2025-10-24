@@ -15,10 +15,13 @@ license = false
 eula = false
 
 [dependencies]
+# Note: hyper-server requires sse feature to be enabled
 rust-mcp-sdk = {version="0.7", default-features = false, features = [
     "server",
     "macros",
     "stdio",
+    "hyper-server",
+    "sse",
     "2025_06_18",
 ] }
 

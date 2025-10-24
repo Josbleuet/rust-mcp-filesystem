@@ -1,4 +1,14 @@
-use clap::{Parser, arg, command};
+use clap::{Parser, ValueEnum, arg, command};
+
+/// Transport mode for the MCP server
+#[derive(Debug, Clone, Copy, ValueEnum, Default)]
+pub enum TransportMode {
+    /// Standard input/output transport (default)
+    #[default]
+    Stdio,
+    /// HTTP/SSE transport via hyper server
+    Http,
+}
 
 #[derive(Parser, Debug)]
 #[command(name =  env!("CARGO_PKG_NAME"))]
@@ -32,6 +42,40 @@ pub struct CommandArguments {
         required = false
     )]
     pub allowed_directories: Vec<String>,
+
+    #[arg(
+        long,
+        value_enum,
+        default_value = "stdio",
+        help = "Transport mode (stdio or http)",
+        env = "TRANSPORT_MODE"
+    )]
+    pub transport: TransportMode,
+
+    #[arg(
+        long,
+        default_value = "127.0.0.1",
+        help = "Host address for HTTP transport (ignored for stdio)",
+        env = "HTTP_HOST"
+    )]
+    pub host: String,
+
+    #[arg(
+        short = 'p',
+        long,
+        default_value = "3000",
+        help = "Port for HTTP transport (ignored for stdio)",
+        env = "HTTP_PORT"
+    )]
+    pub port: u16,
+
+    #[arg(
+        long,
+        help = "Enable SSL for HTTP transport (ignored for stdio)",
+        action = clap::ArgAction::SetTrue,
+        env = "ENABLE_SSL"
+    )]
+    pub enable_ssl: bool,
 }
 
 impl CommandArguments {
