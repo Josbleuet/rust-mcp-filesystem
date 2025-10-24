@@ -1612,6 +1612,254 @@ impl FileSystemService {
         Ok(empty_dirs)
     }
 
+    /// Filters lines from a text file based on different criteria.
+    ///
+    /// Supports three filter types:
+    /// - Regex: Filters lines matching a regular expression pattern
+    /// - Keywords: Filters lines containing specific keywords (comma-separated)
+    /// - Lines: Extracts specific line numbers or ranges (e.g., "1-5,10,15-20")
+    ///
+    /// # Arguments
+    /// * `file_path` - Path to the file to filter
+    /// * `filter_type` - Type of filter to apply (Regex, Keywords, or Lines)
+    /// * `criteria` - Filter criteria (regex pattern, keywords, or line numbers)
+    /// * `options` - Optional filtering options (context, case sensitivity, etc.)
+    ///
+    /// # Returns
+    /// A formatted string containing the filtered lines with optional line numbers and context
+    pub async fn filter_file_lines(
+        &self,
+        file_path: &Path,
+        filter_type: crate::tools::FilterType,
+        criteria: &str,
+        options: Option<crate::tools::FilterOptions>,
+        line_range: Option<String>,
+    ) -> ServiceResult<String> {
+        use crate::tools::FilterType;
+        use grep::regex::RegexMatcherBuilder;
+        use std::collections::HashSet;
+
+        // Validate file path against allowed directories
+        let allowed_directories = self.allowed_directories().await;
+        let valid_path = self.validate_path(file_path, allowed_directories)?;
+
+        // Read all lines from file
+        let content = tokio::fs::read_to_string(&valid_path).await?;
+        let all_lines: Vec<&str> = content.lines().collect();
+        let total_lines = all_lines.len();
+
+        // Parse line range if provided
+        let (range_start, range_end) = if let Some(ref range) = line_range {
+            self.parse_line_range(range, &content)?
+        } else {
+            (0, total_lines)
+        };
+
+        // Apply line range filtering
+        let lines: Vec<&str> = all_lines[range_start..range_end].to_vec();
+        let filtered_total_lines = lines.len();
+
+        // Apply default options
+        let opts = options.unwrap_or_default();
+        let include_line_numbers = opts.include_line_numbers.unwrap_or(true);
+        let context_before = opts.context_before.unwrap_or(0) as usize;
+        let context_after = opts.context_after.unwrap_or(0) as usize;
+        let max_results = opts.max_results.unwrap_or(u32::MAX) as usize;
+
+        // Determine which lines match the criteria
+        let matching_line_numbers: Vec<usize> = match filter_type {
+            FilterType::Regex => {
+                use grep::matcher::Matcher;
+
+                let case_insensitive = opts.case_insensitive.unwrap_or(false);
+                let multiline = opts.multiline.unwrap_or(false);
+                let dot_all = opts.dot_all.unwrap_or(false);
+
+                let mut matcher_builder = RegexMatcherBuilder::new();
+                matcher_builder.case_insensitive(case_insensitive);
+                matcher_builder.multi_line(multiline);
+
+                if dot_all {
+                    matcher_builder.dot_matches_new_line(true);
+                }
+
+                let matcher = matcher_builder.build(criteria)
+                    .map_err(|e| ServiceError::FromString(format!("Invalid regex: {}", e)))?;
+
+                lines
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, line)| matcher.is_match(line.as_bytes()).unwrap_or(false))
+                    .map(|(idx, _)| idx)
+                    .collect()
+            }
+            FilterType::Keywords => {
+                let case_insensitive = opts.case_insensitive.unwrap_or(true);
+                let whole_words = opts.whole_words.unwrap_or(false);
+                let match_all = opts.match_all.unwrap_or(false);
+
+                let keywords: Vec<String> = criteria
+                    .split(',')
+                    .map(|s| {
+                        let trimmed = s.trim();
+                        if case_insensitive {
+                            trimmed.to_lowercase()
+                        } else {
+                            trimmed.to_string()
+                        }
+                    })
+                    .collect();
+
+                lines
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, line)| {
+                        let line_to_search = if case_insensitive {
+                            line.to_lowercase()
+                        } else {
+                            line.to_string()
+                        };
+
+                        if match_all {
+                            // AND logic: all keywords must match
+                            keywords.iter().all(|kw| {
+                                if whole_words {
+                                    line_to_search
+                                        .split_whitespace()
+                                        .any(|word| word == kw)
+                                } else {
+                                    line_to_search.contains(kw)
+                                }
+                            })
+                        } else {
+                            // OR logic: any keyword matches
+                            keywords.iter().any(|kw| {
+                                if whole_words {
+                                    line_to_search
+                                        .split_whitespace()
+                                        .any(|word| word == kw)
+                                } else {
+                                    line_to_search.contains(kw)
+                                }
+                            })
+                        }
+                    })
+                    .map(|(idx, _)| idx)
+                    .collect()
+            }
+            FilterType::Lines => {
+                let mut line_numbers = Vec::new();
+
+                for part in criteria.split(',') {
+                    let part = part.trim();
+                    if part.contains('-') {
+                        // Range like "1-5"
+                        let range_parts: Vec<&str> = part.split('-').collect();
+                        if range_parts.len() == 2 {
+                            let start: usize = range_parts[0]
+                                .trim()
+                                .parse::<usize>()
+                                .map_err(|_| {
+                                    ServiceError::FromString(format!(
+                                        "Invalid line number in range: {}",
+                                        part
+                                    ))
+                                })?
+                                .saturating_sub(1); // Convert to 0-based
+                            let end: usize = range_parts[1]
+                                .trim()
+                                .parse::<usize>()
+                                .map_err(|_| {
+                                    ServiceError::FromString(format!(
+                                        "Invalid line number in range: {}",
+                                        part
+                                    ))
+                                })?
+                                .saturating_sub(1); // Convert to 0-based
+
+                            for i in start..=end.min(total_lines.saturating_sub(1)) {
+                                line_numbers.push(i);
+                            }
+                        }
+                    } else {
+                        // Single line number
+                        let line_num: usize = part
+                            .parse::<usize>()
+                            .map_err(|_| {
+                                ServiceError::FromString(format!("Invalid line number: {}", part))
+                            })?
+                            .saturating_sub(1); // Convert to 0-based
+
+                        if line_num < total_lines {
+                            line_numbers.push(line_num);
+                        }
+                    }
+                }
+
+                line_numbers.sort_unstable();
+                line_numbers.dedup();
+                line_numbers
+            }
+        };
+
+        // Build result with context and line numbers
+        let mut result_lines = Vec::new();
+        let mut added_lines: HashSet<usize> = HashSet::new();
+
+        for (count, &match_idx) in matching_line_numbers.iter().enumerate() {
+            if count >= max_results {
+                break;
+            }
+
+            // Calculate context range
+            let start = match_idx.saturating_sub(context_before);
+            let end = (match_idx + context_after + 1).min(filtered_total_lines);
+
+            for i in start..end {
+                if added_lines.insert(i) {
+                    let line_content = lines[i];
+                    let formatted_line = if include_line_numbers {
+                        // Adjust line number to account for line range offset
+                        format!("{:>4}: {}", range_start + i + 1, line_content)
+                    } else {
+                        line_content.to_string()
+                    };
+                    result_lines.push((i, formatted_line));
+                }
+            }
+        }
+
+        // Sort by line number for consistent output
+        result_lines.sort_by_key(|(idx, _)| *idx);
+
+        // Build final output
+        let filter_type_str = match filter_type {
+            FilterType::Regex => "regex",
+            FilterType::Keywords => "keywords",
+            FilterType::Lines => "lines",
+        };
+
+        let mut output = format!(
+            "Filtering file '{}'\n\nFilter type: {}\nCriteria: {}\nMatches found: {}\n\n",
+            file_path.display(),
+            filter_type_str,
+            criteria,
+            matching_line_numbers.len()
+        );
+
+        if !result_lines.is_empty() {
+            output.push_str("Matching lines:\n\n");
+            for (_, line) in result_lines {
+                output.push_str(&line);
+                output.push('\n');
+            }
+        } else {
+            output.push_str("No matching lines found.\n");
+        }
+
+        Ok(output)
+    }
+
     /// Finds groups of duplicate files within the given root path.
     /// Returns a vector of vectors, where each inner vector contains paths to files with identical content.
     /// Files are considered duplicates if they have the same size and SHA-256 hash.

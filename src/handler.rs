@@ -217,6 +217,7 @@ impl ServerHandler for FileSystemHandler {
             HeadFile,
             TailFile,
             ReadFileLines,
+            FilterFileLines,
             FindEmptyDirectories,
             CalculateDirectorySize,
             FindDuplicateFiles

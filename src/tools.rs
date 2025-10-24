@@ -2,6 +2,7 @@ mod calculate_directory_size;
 mod create_directory;
 mod directory_tree;
 mod edit_file;
+mod filter_file_lines;
 mod find_duplicate_files;
 mod find_empty_directories;
 mod get_file_info;
@@ -25,6 +26,7 @@ pub use calculate_directory_size::{CalculateDirectorySize, FileSizeOutputFormat}
 pub use create_directory::CreateDirectory;
 pub use directory_tree::DirectoryTree;
 pub use edit_file::{EditFile, EditOperation, RegexEditOptions};
+pub use filter_file_lines::{FilterFileLines, FilterOptions, FilterType};
 pub use find_duplicate_files::FindDuplicateFiles;
 pub use find_empty_directories::FindEmptyDirectories;
 pub use get_file_info::GetFileInfo;
@@ -69,6 +71,7 @@ tool_box!(
         HeadFile,
         TailFile,
         ReadFileLines,
+        FilterFileLines,
         FindEmptyDirectories,
         CalculateDirectorySize,
         FindDuplicateFiles
@@ -100,6 +103,7 @@ impl FileSystemTools {
             | FileSystemTools::ReadMultipleMediaFiles(_)
             | FileSystemTools::TailFile(_)
             | FileSystemTools::ReadFileLines(_)
+            | FileSystemTools::FilterFileLines(_)
             | FileSystemTools::FindEmptyDirectories(_)
             | FileSystemTools::CalculateDirectorySize(_)
             | FileSystemTools::FindDuplicateFiles(_)
