@@ -97,7 +97,8 @@ impl FileSystemService {
                 if !expand_result.is_dir() {
                     panic!("{}", format!("Error: {dir} is not a directory"));
                 }
-                Some(expand_result)
+                // Normalize the path to ensure consistent comparisons (especially on Windows)
+                Some(normalize_path(&expand_result))
             })
             .collect();
 

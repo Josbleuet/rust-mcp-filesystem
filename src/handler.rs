@@ -87,6 +87,18 @@ impl FileSystemHandler {
         } else {
             let fs_service = self.fs_service.clone();
             let mcp_roots_support = self.mcp_roots_support;
+
+            // If MCP Roots support is disabled, always use command-line directories
+            if !mcp_roots_support {
+                let message = if allowed_directories.is_empty() {
+                    "Warning: MCP Roots support is disabled, but no allowed directories were provided via command-line arguments. Server cannot operate without allowed directories."
+                } else {
+                    "MCP Roots support is disabled. Using allowed directories from command-line arguments."
+                };
+                let _ = runtime.stderr_message(message.to_string()).await;
+                return;
+            }
+
             // retrieve roots from the client and update the allowed directories accordingly
             let roots = match runtime.clone().list_roots(None).await {
                 Ok(roots_result) => roots_result.roots,
@@ -111,7 +123,7 @@ impl FileSystemHandler {
                 }
             };
 
-            if valid_roots.is_empty() && !mcp_roots_support {
+            if valid_roots.is_empty() {
                 let message = if allowed_directories.is_empty() {
                     "Server cannot operate: No allowed directories available. Server was started without command-line directories and client provided empty roots. Please either: 1) Start server with directory arguments, or 2) Use a client that supports MCP roots protocol and provides valid root directories."
                 } else {

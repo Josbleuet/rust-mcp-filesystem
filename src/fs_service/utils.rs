@@ -61,8 +61,84 @@ pub fn format_permissions(metadata: &fs::Metadata) -> String {
     }
 }
 
+/// Normalizes a path by resolving `.` and `..` components and making it absolute.
+/// On Windows, also ensures consistent path formatting without UNC prefixes and normalizes case.
 pub fn normalize_path(path: &Path) -> PathBuf {
-    path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+    // Try canonicalize first (resolves symlinks and makes absolute)
+    if let Ok(canonical) = path.canonicalize() {
+        // On Windows, canonicalize() returns UNC paths (\\?\C:\...)
+        // We need to strip the UNC prefix for consistent comparisons
+        #[cfg(windows)]
+        {
+            use std::path::Component;
+            // If path starts with UNC prefix, strip it
+            let mut components = canonical.components();
+            if let Some(Component::Prefix(prefix)) = components.next() {
+                use std::path::Prefix;
+                match prefix.kind() {
+                    // \\?\C:\ becomes C:\
+                    Prefix::VerbatimDisk(disk) => {
+                        let mut result = PathBuf::new();
+                        // Uppercase the drive letter for consistency
+                        result.push(format!("{}:", (disk as char).to_ascii_uppercase()));
+                        // Don't manually push RootDir - it's in the components iterator
+                        for component in components {
+                            result.push(component);
+                        }
+                        return result;
+                    }
+                    // \\?\UNC\server\share becomes \\server\share
+                    Prefix::VerbatimUNC(server, share) => {
+                        let mut result = PathBuf::new();
+                        result.push(format!(
+                            "\\\\{}\\{}",
+                            server.to_string_lossy(),
+                            share.to_string_lossy()
+                        ));
+                        for component in components {
+                            result.push(component);
+                        }
+                        return result;
+                    }
+                    _ => return canonical,
+                }
+            }
+            canonical
+        }
+        #[cfg(not(windows))]
+        {
+            canonical
+        }
+    } else {
+        // If canonicalize fails (path doesn't exist), manually normalize
+        let mut normalized = PathBuf::new();
+        for component in path.components() {
+            match component {
+                Component::ParentDir => {
+                    normalized.pop();
+                }
+                Component::CurDir => {}
+                component => {
+                    #[cfg(windows)]
+                    {
+                        // On Windows, ensure drive letters are uppercase
+                        if let Component::Prefix(prefix) = component {
+                            use std::path::Prefix;
+                            if let Prefix::Disk(disk) = prefix.kind() {
+                                normalized.push(format!("{}:", (disk as char).to_ascii_uppercase()));
+                                continue;
+                            } else if let Prefix::VerbatimDisk(disk) = prefix.kind() {
+                                normalized.push(format!("{}:", (disk as char).to_ascii_uppercase()));
+                                continue;
+                            }
+                        }
+                    }
+                    normalized.push(component);
+                }
+            }
+        }
+        normalized
+    }
 }
 
 pub fn expand_home(path: PathBuf) -> PathBuf {
