@@ -1,3 +1,7 @@
+// Configuration progressive vers zéro tolérance
+// #![deny(warnings)]
+// #![deny(clippy::all)]
+
 use clap::Parser;
 use rust_mcp_filesystem::{cli, server};
 

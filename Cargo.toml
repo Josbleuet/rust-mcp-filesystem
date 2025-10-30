@@ -7,6 +7,16 @@ authors = ["Ali Hashemi"]
 description = "Blazing-fast, asynchronous MCP server for seamless filesystem operations."
 homepage = "https://github.com/rust-mcp-stack/rust-mcp-filesystem"
 
+# Configuration Clippy stricte (activation progressive)
+# [lints.rust]
+# warnings = "deny"
+# unused_imports = "deny"
+# dead_code = "deny"
+
+# [lints.clippy]
+# all = "deny"
+# pedantic = "warn"
+# nursery = "warn"
 
 [package.metadata.wix]
 upgrade-guid = "944FE3C9-C8C2-4114-8C8F-5330720E781F"
