@@ -592,11 +592,7 @@ async fn invalid_file_path() {
 #[tokio::test]
 async fn invalid_regex_pattern() {
     let (temp_dir, service, _allowed_dirs) = setup_service(vec!["test".to_string()]);
-    let test_file = create_temp_file(
-        &temp_dir.join("test"),
-        "sample.txt",
-        "Test content",
-    );
+    let test_file = create_temp_file(&temp_dir.join("test"), "sample.txt", "Test content");
 
     let params = FilterFileLines {
         path: test_file.to_str().unwrap().to_string(),
@@ -636,11 +632,7 @@ async fn path_outside_allowed_directories() {
     let (temp_dir, service, _allowed_dirs) = setup_service(vec!["test".to_string()]);
     let unauthorized_dir = temp_dir.join("unauthorized");
     std::fs::create_dir_all(&unauthorized_dir).unwrap();
-    let unauthorized_file = create_temp_file(
-        &unauthorized_dir,
-        "file.txt",
-        "Unauthorized content",
-    );
+    let unauthorized_file = create_temp_file(&unauthorized_dir, "file.txt", "Unauthorized content");
 
     let params = FilterFileLines {
         path: unauthorized_file.to_str().unwrap().to_string(),
@@ -663,11 +655,7 @@ async fn path_outside_allowed_directories() {
 #[tokio::test]
 async fn empty_file() {
     let (temp_dir, service, _allowed_dirs) = setup_service(vec!["test".to_string()]);
-    let test_file = create_temp_file(
-        &temp_dir.join("test"),
-        "empty.txt",
-        "",
-    );
+    let test_file = create_temp_file(&temp_dir.join("test"), "empty.txt", "");
 
     let params = FilterFileLines {
         path: test_file.to_str().unwrap().to_string(),
@@ -757,9 +745,9 @@ async fn large_file_with_many_matches() {
     let mut lines = Vec::new();
     for i in 1..=1000 {
         if i % 10 == 0 {
-            lines.push(format!("Line {} with ERROR", i));
+            lines.push(format!("Line {i} with ERROR"));
         } else {
-            lines.push(format!("Line {}", i));
+            lines.push(format!("Line {i}"));
         }
     }
     let content = lines.join("\n");

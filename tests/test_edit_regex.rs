@@ -55,7 +55,7 @@ async fn test_regex_edit_case_insensitive() {
         }),
     }];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();
@@ -85,7 +85,7 @@ async fn test_regex_edit_max_replacements() {
         }),
     }];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();
@@ -116,7 +116,7 @@ async fn test_regex_edit_multiline() {
         }),
     }];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();
@@ -146,7 +146,7 @@ async fn test_regex_edit_dot_all() {
         }),
     }];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();
@@ -177,7 +177,7 @@ async fn test_mixed_exact_and_regex_edits() {
         },
     ];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();
@@ -202,8 +202,14 @@ async fn test_line_range_exact_edit() {
         new_text: "LINE3".to_string(),
     }];
 
-    let result = service
-        .apply_file_edits(&file_path, edits, Some(false), None, Some("2-4".to_string()))
+    let _result = service
+        .apply_file_edits(
+            &file_path,
+            edits,
+            Some(false),
+            None,
+            Some("2-4".to_string()),
+        )
         .await
         .unwrap();
 
@@ -228,8 +234,14 @@ async fn test_line_range_regex_edit() {
     }];
 
     // Only apply to lines 2-4 (1-based), should affect line2, line3, line4
-    let result = service
-        .apply_file_edits(&file_path, edits, Some(false), None, Some("2-4".to_string()))
+    let _result = service
+        .apply_file_edits(
+            &file_path,
+            edits,
+            Some(false),
+            None,
+            Some("2-4".to_string()),
+        )
         .await
         .unwrap();
 
@@ -241,14 +253,10 @@ async fn test_line_range_regex_edit() {
 #[tokio::test]
 async fn test_regex_edit_invalid_pattern() {
     let (temp_dir, service, _allowed_dirs) = setup_service(vec!["dir1".to_string()]);
-    let file_path = create_temp_file(
-        temp_dir.join("dir1").as_path(),
-        "test.txt",
-        "hello world",
-    );
+    let file_path = create_temp_file(temp_dir.join("dir1").as_path(), "test.txt", "hello world");
 
     let edits = vec![EditOperation::Regex {
-        pattern: "[invalid(".to_string(),  // Invalid regex
+        pattern: "[invalid(".to_string(), // Invalid regex
         replacement: "test".to_string(),
         options: None,
     }];
@@ -277,19 +285,37 @@ async fn test_invalid_line_range() {
 
     // Invalid format
     let result = service
-        .apply_file_edits(&file_path, edits.clone(), Some(false), None, Some("invalid".to_string()))
+        .apply_file_edits(
+            &file_path,
+            edits.clone(),
+            Some(false),
+            None,
+            Some("invalid".to_string()),
+        )
         .await;
     assert!(result.is_err());
 
     // Start >= end
     let result = service
-        .apply_file_edits(&file_path, edits.clone(), Some(false), None, Some("5-2".to_string()))
+        .apply_file_edits(
+            &file_path,
+            edits.clone(),
+            Some(false),
+            None,
+            Some("5-2".to_string()),
+        )
         .await;
     assert!(result.is_err());
 
     // Start beyond file
     let result = service
-        .apply_file_edits(&file_path, edits, Some(false), None, Some("10-20".to_string()))
+        .apply_file_edits(
+            &file_path,
+            edits,
+            Some(false),
+            None,
+            Some("10-20".to_string()),
+        )
         .await;
     assert!(result.is_err());
 }
@@ -310,7 +336,7 @@ async fn test_regex_capture_groups() {
         options: None,
     }];
 
-    let result = service
+    let _result = service
         .apply_file_edits(&file_path, edits, Some(false), None, None)
         .await
         .unwrap();

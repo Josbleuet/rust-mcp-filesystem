@@ -963,27 +963,23 @@ impl FileSystemService {
             range.split(':').collect()
         } else {
             return Err(ServiceError::FromString(format!(
-                "Invalid line range format: '{}'. Expected format: 'start-end' or 'start:end'",
-                range
+                "Invalid line range format: '{range}'. Expected format: 'start-end' or 'start:end'"
             )));
         };
 
         if parts.len() != 2 {
             return Err(ServiceError::FromString(format!(
-                "Invalid line range format: '{}'. Expected exactly two numbers separated by '-' or ':'",
-                range
+                "Invalid line range format: '{range}'. Expected exactly two numbers separated by '-' or ':'"
             )));
         }
 
-        let start: usize = parts[0]
-            .trim()
-            .parse()
-            .map_err(|_| ServiceError::FromString(format!("Invalid start line number: '{}'", parts[0])))?;
+        let start: usize = parts[0].trim().parse().map_err(|_| {
+            ServiceError::FromString(format!("Invalid start line number: '{}'", parts[0]))
+        })?;
 
-        let end: usize = parts[1]
-            .trim()
-            .parse()
-            .map_err(|_| ServiceError::FromString(format!("Invalid end line number: '{}'", parts[1])))?;
+        let end: usize = parts[1].trim().parse().map_err(|_| {
+            ServiceError::FromString(format!("Invalid end line number: '{}'", parts[1]))
+        })?;
 
         // Convert to 0-based indexing
         let start_idx = start.saturating_sub(1);
@@ -991,15 +987,13 @@ impl FileSystemService {
 
         if start_idx >= end_idx {
             return Err(ServiceError::FromString(format!(
-                "Invalid line range: start ({}) must be less than end ({})",
-                start, end
+                "Invalid line range: start ({start}) must be less than end ({end})"
             )));
         }
 
         if start_idx >= total_lines {
             return Err(ServiceError::FromString(format!(
-                "Start line ({}) exceeds total lines ({})",
-                start, total_lines
+                "Start line ({start}) exceeds total lines ({total_lines})"
             )));
         }
 
@@ -1014,14 +1008,21 @@ impl FileSystemService {
             EditOperation::Exact { old_text, new_text } => {
                 self.apply_exact_edit(content, &old_text, &new_text)
             }
-            EditOperation::Regex { pattern, replacement, options } => {
-                self.apply_regex_edit(content, &pattern, &replacement, options)
-            }
+            EditOperation::Regex {
+                pattern,
+                replacement,
+                options,
+            } => self.apply_regex_edit(content, &pattern, &replacement, options),
         }
     }
 
     /// Apply exact text replacement (original logic)
-    fn apply_exact_edit(&self, content: &str, old_text: &str, new_text: &str) -> ServiceResult<String> {
+    fn apply_exact_edit(
+        &self,
+        content: &str,
+        old_text: &str,
+        new_text: &str,
+    ) -> ServiceResult<String> {
         let normalized_old = normalize_line_endings(old_text);
         let normalized_new = normalize_line_endings(new_text);
 
@@ -1120,8 +1121,7 @@ impl FileSystemService {
         }
 
         Err(ServiceError::FromString(format!(
-            "Could not find exact match for edit:\n{}",
-            old_text
+            "Could not find exact match for edit:\n{old_text}"
         )))
     }
 
@@ -1148,7 +1148,7 @@ impl FileSystemService {
             .multi_line(opts.multiline.unwrap_or(false))
             .dot_matches_new_line(opts.dot_all.unwrap_or(false))
             .build()
-            .map_err(|e| ServiceError::FromString(format!("Invalid regex pattern: {}", e)))?;
+            .map_err(|e| ServiceError::FromString(format!("Invalid regex pattern: {e}")))?;
 
         let max_replacements = opts.max_replacements.unwrap_or(0) as usize;
 
@@ -1684,8 +1684,9 @@ impl FileSystemService {
                     matcher_builder.dot_matches_new_line(true);
                 }
 
-                let matcher = matcher_builder.build(criteria)
-                    .map_err(|e| ServiceError::FromString(format!("Invalid regex: {}", e)))?;
+                let matcher = matcher_builder
+                    .build(criteria)
+                    .map_err(|e| ServiceError::FromString(format!("Invalid regex: {e}")))?;
 
                 lines
                     .iter()
@@ -1725,9 +1726,7 @@ impl FileSystemService {
                             // AND logic: all keywords must match
                             keywords.iter().all(|kw| {
                                 if whole_words {
-                                    line_to_search
-                                        .split_whitespace()
-                                        .any(|word| word == kw)
+                                    line_to_search.split_whitespace().any(|word| word == kw)
                                 } else {
                                     line_to_search.contains(kw)
                                 }
@@ -1736,9 +1735,7 @@ impl FileSystemService {
                             // OR logic: any keyword matches
                             keywords.iter().any(|kw| {
                                 if whole_words {
-                                    line_to_search
-                                        .split_whitespace()
-                                        .any(|word| word == kw)
+                                    line_to_search.split_whitespace().any(|word| word == kw)
                                 } else {
                                     line_to_search.contains(kw)
                                 }
@@ -1762,8 +1759,7 @@ impl FileSystemService {
                                 .parse::<usize>()
                                 .map_err(|_| {
                                     ServiceError::FromString(format!(
-                                        "Invalid line number in range: {}",
-                                        part
+                                        "Invalid line number in range: {part}"
                                     ))
                                 })?
                                 .saturating_sub(1); // Convert to 0-based
@@ -1772,8 +1768,7 @@ impl FileSystemService {
                                 .parse::<usize>()
                                 .map_err(|_| {
                                     ServiceError::FromString(format!(
-                                        "Invalid line number in range: {}",
-                                        part
+                                        "Invalid line number in range: {part}"
                                     ))
                                 })?
                                 .saturating_sub(1); // Convert to 0-based
@@ -1787,7 +1782,7 @@ impl FileSystemService {
                         let line_num: usize = part
                             .parse::<usize>()
                             .map_err(|_| {
-                                ServiceError::FromString(format!("Invalid line number: {}", part))
+                                ServiceError::FromString(format!("Invalid line number: {part}"))
                             })?
                             .saturating_sub(1); // Convert to 0-based
 
@@ -1816,16 +1811,15 @@ impl FileSystemService {
             let start = match_idx.saturating_sub(context_before);
             let end = (match_idx + context_after + 1).min(filtered_total_lines);
 
-            for i in start..end {
-                if added_lines.insert(i) {
-                    let line_content = lines[i];
+            for (idx, line_content) in lines.iter().enumerate().skip(start).take(end - start) {
+                if added_lines.insert(idx) {
                     let formatted_line = if include_line_numbers {
                         // Adjust line number to account for line range offset
-                        format!("{:>4}: {}", range_start + i + 1, line_content)
+                        format!("{:>4}: {}", range_start + idx + 1, line_content)
                     } else {
                         line_content.to_string()
                     };
-                    result_lines.push((i, formatted_line));
+                    result_lines.push((idx, formatted_line));
                 }
             }
         }

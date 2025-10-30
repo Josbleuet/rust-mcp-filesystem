@@ -125,10 +125,12 @@ pub fn normalize_path(path: &Path) -> PathBuf {
                         if let Component::Prefix(prefix) = component {
                             use std::path::Prefix;
                             if let Prefix::Disk(disk) = prefix.kind() {
-                                normalized.push(format!("{}:", (disk as char).to_ascii_uppercase()));
+                                normalized
+                                    .push(format!("{}:", (disk as char).to_ascii_uppercase()));
                                 continue;
                             } else if let Prefix::VerbatimDisk(disk) = prefix.kind() {
-                                normalized.push(format!("{}:", (disk as char).to_ascii_uppercase()));
+                                normalized
+                                    .push(format!("{}:", (disk as char).to_ascii_uppercase()));
                                 continue;
                             }
                         }

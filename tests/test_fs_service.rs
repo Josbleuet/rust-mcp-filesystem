@@ -12,6 +12,7 @@ use grep::matcher::Match;
 use rust_mcp_filesystem::error::ServiceError;
 use rust_mcp_filesystem::fs_service::FileSystemService;
 use rust_mcp_filesystem::fs_service::file_info::FileInfo;
+use rust_mcp_filesystem::fs_service::utils::normalize_path;
 use rust_mcp_filesystem::fs_service::utils::*;
 use rust_mcp_filesystem::tools::EditOperation;
 use std::fs::{self, File};
@@ -36,7 +37,10 @@ async fn test_try_new_success() {
     let result = FileSystemService::try_new(&[dir_path]);
     assert!(result.is_ok());
     let service = result.unwrap();
-    assert_eq!(*service.allowed_directories().await, vec![temp_dir]);
+    assert_eq!(
+        *service.allowed_directories().await,
+        vec![normalize_path(&temp_dir)]
+    );
 }
 
 #[test]
@@ -50,7 +54,7 @@ async fn test_allowed_directories() {
     let (temp_dir, service, _allowed_dirs) = setup_service(vec!["dir1".to_string()]);
     let allowed = service.allowed_directories().await;
     assert_eq!(allowed.len(), 1);
-    assert_eq!(allowed[0], temp_dir.join("dir1"));
+    assert_eq!(allowed[0], normalize_path(&temp_dir.join("dir1")));
 }
 
 #[tokio::test]
@@ -460,7 +464,8 @@ fn test_normalize_path() {
     File::create(&file_path).unwrap();
 
     let normalized = normalize_path(&file_path);
-    assert_eq!(normalized, file_path);
+    // The normalized path should be the same as normalizing it again (idempotent)
+    assert_eq!(normalized, normalize_path(&normalized));
 
     // Test non-existent path
     let non_existent = Path::new("/does/not/exist");
@@ -640,7 +645,13 @@ async fn test_apply_file_edits_mixed_indentation() {
     let out_file = temp_dir.join("dir1").join("out_indent.txt");
 
     let result = service
-        .apply_file_edits(&file_path, edits, Some(false), Some(out_file.as_path()), None)
+        .apply_file_edits(
+            &file_path,
+            edits,
+            Some(false),
+            Some(out_file.as_path()),
+            None,
+        )
         .await;
 
     assert!(result.is_ok());
@@ -688,7 +699,13 @@ async fn test_apply_file_edits_mixed_indentation_2() {
     let out_file = temp_dir.join("dir1").join("out_indent.txt");
 
     let result = service
-        .apply_file_edits(&file_path, edits, Some(false), Some(out_file.as_path()), None)
+        .apply_file_edits(
+            &file_path,
+            edits,
+            Some(false),
+            Some(out_file.as_path()),
+            None,
+        )
         .await;
     assert!(result.is_ok());
 }

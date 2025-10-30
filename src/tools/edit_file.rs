@@ -46,11 +46,7 @@ pub struct RegexEditOptions {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub multiline: Option<bool>,
     /// If true, the dot (.) matches newlines as well (default: false)
-    #[serde(
-        rename = "dotAll",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "dotAll", default, skip_serializing_if = "Option::is_none")]
     pub dot_all: Option<bool>,
     /// Maximum number of replacements (0 = unlimited, default: 0)
     #[serde(

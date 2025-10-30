@@ -24,55 +24,31 @@ pub enum FilterType {
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct FilterOptions {
     /// If true, the search is case-insensitive (default: true for keywords, false for regex)
-    #[serde(
-        rename = "caseInsensitive",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "caseInsensitive", skip_serializing_if = "Option::is_none")]
     pub case_insensitive: Option<bool>,
     /// Whether to include line numbers in the output (default: true)
-    #[serde(
-        rename = "includeLineNumbers",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "includeLineNumbers", skip_serializing_if = "Option::is_none")]
     pub include_line_numbers: Option<bool>,
     /// Number of context lines to show before each match (default: 0)
-    #[serde(
-        rename = "contextBefore",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "contextBefore", skip_serializing_if = "Option::is_none")]
     pub context_before: Option<u32>,
     /// Number of context lines to show after each match (default: 0)
-    #[serde(
-        rename = "contextAfter",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "contextAfter", skip_serializing_if = "Option::is_none")]
     pub context_after: Option<u32>,
     /// For keywords: match whole words only (default: false)
-    #[serde(
-        rename = "wholeWords",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "wholeWords", skip_serializing_if = "Option::is_none")]
     pub whole_words: Option<bool>,
     /// For keywords: require all keywords to match (AND logic) vs any keyword (OR logic) (default: false = OR)
-    #[serde(
-        rename = "matchAll",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "matchAll", skip_serializing_if = "Option::is_none")]
     pub match_all: Option<bool>,
     /// Maximum number of results to return (default: unlimited)
-    #[serde(
-        rename = "maxResults",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "maxResults", skip_serializing_if = "Option::is_none")]
     pub max_results: Option<u32>,
     /// If true, ^ and $ match line boundaries instead of string boundaries (default: false)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub multiline: Option<bool>,
     /// If true, the dot (.) matches newlines as well (default: false)
-    #[serde(
-        rename = "dotAll",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "dotAll", skip_serializing_if = "Option::is_none")]
     pub dot_all: Option<bool>,
 }
 
@@ -125,10 +101,7 @@ pub struct FilterFileLines {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub options: Option<FilterOptions>,
     /// Optional line range to restrict filtering (format: "start-end" or "start:end")
-    #[serde(
-        rename = "lineRange",
-        skip_serializing_if = "Option::is_none"
-    )]
+    #[serde(rename = "lineRange", skip_serializing_if = "Option::is_none")]
     pub line_range: Option<String>,
 }
 
