@@ -10,13 +10,15 @@ use crate::fs_service::FileSystemService;
 
 /// Type of filter to apply when filtering file lines.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
 pub enum FilterType {
     /// Filter using regular expression pattern
+    #[serde(rename = "regex")]
     Regex,
     /// Filter by matching keywords (comma-separated)
+    #[serde(rename = "keywords")]
     Keywords,
     /// Filter by specific line numbers or ranges (e.g., "1-5,10,15-20")
+    #[serde(rename = "lines")]
     Lines,
 }
 
