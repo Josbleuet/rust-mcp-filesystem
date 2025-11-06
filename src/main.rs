@@ -13,7 +13,32 @@ async fn main() {
         return;
     };
 
+    // Initialize logger based on verbose flag
+    init_logger(arguments.verbose);
+
     if let Err(error) = server::start_server(arguments).await {
         eprintln!("{error}");
     }
+}
+
+/// Initialize the tracing subscriber for logging
+fn init_logger(verbose: bool) {
+    use tracing_subscriber::{fmt, EnvFilter};
+
+    let filter = if verbose {
+        // Verbose mode: show all logs from this crate
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("rust_mcp_filesystem=debug,rust_mcp_sdk=debug"))
+    } else {
+        // Normal mode: show info level and above
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("rust_mcp_filesystem=info,rust_mcp_sdk=info"))
+    };
+
+    fmt()
+        .with_env_filter(filter)
+        .with_target(true)
+        .with_thread_ids(false)
+        .with_line_number(true)
+        .init();
 }

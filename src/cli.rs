@@ -76,6 +76,14 @@ pub struct CommandArguments {
         env = "ENABLE_SSL"
     )]
     pub enable_ssl: bool,
+
+    #[arg(
+        short = 'v',
+        long,
+        help = "Enables verbose logging",
+        action = clap::ArgAction::SetTrue
+    )]
+    pub verbose: bool,
 }
 
 impl CommandArguments {
