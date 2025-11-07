@@ -35,10 +35,13 @@ fn init_logger(verbose: bool) {
             .unwrap_or_else(|_| EnvFilter::new("rust_mcp_filesystem=info,rust_mcp_sdk=info"))
     };
 
+    // CRITICAL: Route logs to stderr to avoid corrupting JSON-RPC protocol on stdout
+    // ANSI colors are safe on stderr since stdout remains pure JSON
     fmt()
         .with_env_filter(filter)
         .with_target(true)
         .with_thread_ids(false)
         .with_line_number(true)
+        .with_writer(std::io::stderr) // Logs on stderr, so ANSI colors don't corrupt stdout JSON
         .init();
 }
